@@ -1,6 +1,52 @@
 # 实现进度记录
 
-# 实现进度记录
+## 2024-06-12 会话3 - 字幕校正功能 ✅
+
+### 新增功能
+
+1. **字幕自动校正** 🎯
+   - 算法：`difflib.SequenceMatcher` 字符级对齐
+   - 输入：ASR 字幕（时间准确，文字可能误识别）+ 准确脚本文本
+   - 输出：校正后字幕（时间保留，文字替换）
+   - 流程：
+     * 构建 ASR 字符时间戳映射（字符级）
+     * SequenceMatcher 生成对齐操作（equal/replace/insert/delete）
+     * 将脚本文本映射到 ASR 时间戳
+     * 按标点切句重新生成字幕
+   - 边界处理：最后一句结束时间用 ASR 原始结束时间
+
+2. **文件管理优化**
+   - New Project 自动清理上传文件，保留最新 3 个
+   - SRT 下载使用原始文件名（不再是 UUID 乱码）
+   - 前端生成 SRT 内容，避免服务器文件名问题
+
+3. **Bug 修复**
+   - 最后一句字幕识别丢失：`segmentation.py` 边界条件处理
+   - 最后一句结束时间过早：校正时用 ASR 原始结束时间
+   - SRT 文件名乱码：前端直接生成下载，指定文件名
+
+### 技术实现
+
+**后端端点**：
+- `/correct` - 字幕校正（字符级对齐）
+- `/project/reset` - 清理上传文件
+
+**前端**：
+- "Upload Script to Correct" 按钮
+- `generateSRT()` 函数生成 SRT 内容
+- `saveState()` 保存校正结果到 localStorage
+
+**算法优化**：
+- `_map_word_items_to_sentences_smart()` 添加边界检查
+- 最后一句 `end_item_idx` 为 None 时使用最后一个 item
+
+### Git 管理
+
+- Git 仓库清理：从 3.6GB 降至 604KB
+- 删除 LFS 缓存和旧历史
+- Release v0.1 发布
+
+---
 
 ## 2024-06-12 会话2 - Forced Alignment 完成 ✅
 
@@ -71,14 +117,6 @@
 - test_basic.py 端到端测试脚本
 
 ## Git 提交历史
-1. Initial commit: MLX-based system
-2. Setup: uv sync & model download
-3. Fix: Model path & mlx-audio
-4. Add: test_basic.py
-5. Doc: PROGRESS.md
-6. Fix: Remove duplicate models/models/
-7. Clean: Remove duplicate docs
-8. Complete: All frontend files restored
-9. Fix: Restore missing web.py and templates
-10. Add: Download ForcedAligner model
-11. Add: Download Silero VAD models
+1. Initial commit: subtitle maker with Qwen3-ASR + Forced Alignment
+2. feat: 字幕校正功能与最后一句识别修复
+3. docs: 更新 README 和 TODO 文档
