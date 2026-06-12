@@ -283,6 +283,10 @@ class SubtitleSegmenter:
                     end_item_idx = idx
                     break
 
+            # 如果循环结束还没找到结束位置，用最后一个item
+            if start_item_idx is not None and end_item_idx is None and word_items:
+                end_item_idx = len(word_items) - 1
+
             if start_item_idx is not None and end_item_idx is not None:
                 subtitles.append(
                     SubtitleSegment(

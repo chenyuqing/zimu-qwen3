@@ -35,6 +35,8 @@ const originalDisplay = document.getElementById('original-subtitles');
 const translatedDisplay = document.getElementById('translated-subtitles');
 const translateBtn = document.getElementById('translate-btn');
 const downloadOriginal = document.getElementById('download-original');
+const correctBtn = document.getElementById('correct-btn');
+const scriptFileInput = document.getElementById('script-file-input');
 // const downloadTranslated = document.getElementById('download-translated'); // Removed in HTML, recreated dynamically? Or hidden?
 
 let currentFilename = null;
@@ -1621,11 +1623,24 @@ async function pollStatus() {
                 renderTimeRanges();
 
                 if (downloadOriginal) {
-                    downloadOriginal.href = data.srt_url;
-                    const baseName = currentOriginalFilename || currentFilename;
-                    downloadOriginal.download = baseName.replace(/\.[\w]+$/, '.srt');
+                    const baseName = currentOriginalFilename || currentFilename || 'subtitles';
+                    const srtFilename = baseName.replace(/\.[^.]+$/, '.srt');
+
+                    downloadOriginal.onclick = (e) => {
+                        e.preventDefault();
+                        const srtContent = generateSRT(originalSubtitlesData);
+                        const blob = new Blob([srtContent], { type: 'text/plain;charset=utf-8' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = srtFilename;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                    };
                     downloadOriginal.style.display = 'inline-block';
                 }
+
+                if (correctBtn) correctBtn.style.display = 'inline-block';
 
                 if (transcribeBtn) transcribeBtn.disabled = false;
                 if (translateBtn) translateBtn.disabled = false;
@@ -1700,6 +1715,12 @@ function formatTime(seconds) {
     const pad = (num) => String(num).padStart(2, '0');
     const pad3 = (num) => String(num).padStart(3, '0');
     return `${pad(h)}:${pad(m)}:${pad(s)},${pad3(ms)}`;
+}
+
+function generateSRT(subtitles) {
+    return subtitles.map((sub, i) =>
+        `${i + 1}\n${formatTime(sub.start)} --> ${formatTime(sub.end)}\n${sub.text}\n`
+    ).join('\n');
 }
 
 // 3. Translate
@@ -2229,3 +2250,45 @@ Promise.all([
 });
 
 // 5. Export Segments (Event Delegation)
+
+// Script Correction
+if (correctBtn) {
+    correctBtn.addEventListener('click', () => {
+        scriptFileInput.click();
+    });
+}
+
+if (scriptFileInput) {
+    scriptFileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (!originalSubtitlesData || originalSubtitlesData.length === 0) {
+            alert('No subtitles to correct. Please generate subtitles first.');
+            return;
+        }
+
+        try {
+            const text = await file.text();
+            const formData = new FormData();
+            formData.append('subtitles_json', JSON.stringify(originalSubtitlesData));
+            formData.append('script_text', text);
+
+            const response = await fetch('/correct', { method: 'POST', body: formData });
+            if (!response.ok) throw new Error('Correction failed');
+
+            const data = await response.json();
+            originalSubtitlesData = data.corrected_subtitles;
+            renderSubtitles(originalSubtitlesData, originalDisplay);
+            saveState();
+
+            alert('Subtitles corrected successfully!');
+        } catch (err) {
+            console.error('Script correction error:', err);
+            alert('Failed to correct subtitles: ' + err.message);
+        } finally {
+            scriptFileInput.value = '';
+        }
+    });
+}
+

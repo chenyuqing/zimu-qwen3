@@ -152,3 +152,102 @@ async def translate_subtitles(
     ]
 
     return {"translated_subtitles": translated}
+
+
+@upload_router.post("/project/reset")
+async def reset_project():
+    """清理上传文件，只保留最新3个。"""
+    try:
+        files = sorted(UPLOAD_DIR.glob("*"), key=lambda p: p.stat().st_mtime, reverse=True)
+        for f in files[3:]:
+            f.unlink()
+        return {"status": "ok", "kept": len(files[:3]), "deleted": len(files[3:])}
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@upload_router.post("/correct")
+async def correct_subtitles(
+    subtitles_json: str = Form(...),
+    script_text: str = Form(...),
+):
+    """字符级对齐校正字幕。"""
+    import json
+    from difflib import SequenceMatcher
+
+    subtitles = json.loads(subtitles_json)
+
+    # 构建 ASR 文本和字符时间戳映射
+    asr_text = ""
+    char_times = []  # [(start, end), ...]
+
+    for sub in subtitles:
+        text = sub["text"]
+        start, end = sub["start"], sub["end"]
+        duration = end - start
+        char_duration = duration / len(text) if text else 0
+
+        for i, char in enumerate(text):
+            asr_text += char
+            char_start = start + i * char_duration
+            char_end = start + (i + 1) * char_duration
+            char_times.append((char_start, char_end))
+
+    # 字符级对齐
+    matcher = SequenceMatcher(None, asr_text, script_text)
+    script_char_times = []
+
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+        if tag == 'equal' or tag == 'replace':
+            # 映射时间戳
+            for j in range(j1, j2):
+                if i1 + (j - j1) < len(char_times):
+                    script_char_times.append(char_times[i1 + (j - j1)])
+                else:
+                    # 超出范围，用最后一个时间
+                    script_char_times.append(char_times[-1] if char_times else (0, 0))
+        elif tag == 'insert':
+            # 脚本插入字符，复用前一个时间
+            prev_time = script_char_times[-1] if script_char_times else (0, 0)
+            for _ in range(j1, j2):
+                script_char_times.append(prev_time)
+
+    # 重新切分句子
+    import re
+    sentences = re.split(r'([。！？\n])', script_text)
+    corrected = []
+    idx = 1
+    char_pos = 0
+    asr_last_end = subtitles[-1]["end"] if subtitles else 0
+
+    for i in range(0, len(sentences), 2):
+        sent = sentences[i]
+        punct = sentences[i + 1] if i + 1 < len(sentences) else ""
+        text = sent + punct
+
+        if not text.strip():
+            continue
+
+        # 获取这段文本的时间范围
+        start_pos = char_pos
+        end_pos = char_pos + len(text)
+
+        if start_pos < len(script_char_times):
+            start_time = script_char_times[start_pos][0]
+            # 最后一句用 ASR 原始结束时间
+            if end_pos >= len(script_char_times):
+                end_time = asr_last_end
+            else:
+                end_time = script_char_times[end_pos - 1][1]
+
+            corrected.append({
+                "index": idx,
+                "start": round(start_time, 3),
+                "end": round(end_time, 3),
+                "text": text.strip(),
+            })
+            idx += 1
+
+        char_pos = end_pos
+
+    return {"corrected_subtitles": corrected}
