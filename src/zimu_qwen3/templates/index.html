@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subtitle Maker</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon/favicon.ico?v={{ style_css_version }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon/favicon-32x32.png?v={{ style_css_version }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon/favicon-16x16.png?v={{ style_css_version }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon/apple-touch-icon.png?v={{ style_css_version }}">
+    <link rel="manifest" href="/static/favicon/site.webmanifest?v={{ style_css_version }}">
+    <link rel="stylesheet" href="/static/style.css?v={{ style_css_version }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+        <div class="app-layout">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <div class="logo-area">
+                    <div class="logo-head">
+                        <a class="logo-link" href="/" aria-label="Back to home">
+                            <img class="logo-image" src="/static/logo/logo.png?v={{ style_css_version }}" alt="Subtitle Maker logo">
+                            <span class="logo-title">
+                                <span class="logo-title-line">Subtitle</span>
+                                <span class="logo-title-line">Maker</span>
+                            </span>
+                        </a>
+                        <button
+                            id="sidebar-toggle-btn"
+                            class="sidebar-toggle-btn"
+                            type="button"
+                            aria-expanded="true"
+                            aria-label="Collapse sidebar"
+                        >
+                            <span class="sidebar-toggle-icon" aria-hidden="true"></span>
+                        </button>
+                    </div>
+                </div>
+
+                <nav class="nav-menu">
+                    <button class="nav-item active" data-target="panel-upload">
+                        <span class="step-num">1</span>
+                        <span class="nav-label">Upload Media</span>
+                    </button>
+                    <button class="nav-item" data-target="panel-results">
+                        <span class="step-num">2</span>
+                        <span class="nav-label">Subtitle & Translation</span>
+                    </button>
+                </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-translate-card">
+                    <div class="sidebar-translate-head">
+                        <div>
+                            <div class="sidebar-translate-kicker">Translation API</div>
+                            <div class="sidebar-translate-title">OpenAI-compatible 配置</div>
+                        </div>
+                        <div class="sidebar-translate-head-actions">
+                            <span id="translate-key-source" class="sidebar-translate-badge">Env</span>
+                            <span id="global-translate-test-status" class="sidebar-translate-test-status" aria-live="polite">未测试</span>
+                            <button
+                                id="global-translate-test-btn"
+                                type="button"
+                                class="ghost-btn sidebar-translate-test-btn"
+                                title="测试连通性"
+                            >
+                                测试
+                            </button>
+                            <button
+                                id="global-translate-toggle"
+                                type="button"
+                                class="sidebar-translate-toggle"
+                                aria-expanded="false"
+                                title="展开或收起翻译 API 设置"
+                            >
+                                ▾
+                            </button>
+                        </div>
+                    </div>
+                    <div id="global-translate-body" class="sidebar-translate-body">
+                        <input
+                            type="password"
+                            id="global-translate-api-key"
+                            autocomplete="off"
+                            placeholder="Translation / Auto Dubbing / Agent 共用"
+                        >
+                        <input
+                            type="text"
+                            id="global-translate-base-url"
+                            autocomplete="off"
+                            placeholder="Base URL，例如你的 OpenAI-compatible 接口地址"
+                        >
+                        <input
+                            type="text"
+                            id="global-translate-model"
+                            autocomplete="off"
+                            placeholder="Model，例如你的模型名称"
+                        >
+                        <div class="checkbox-row sidebar-translate-check">
+                            <input type="checkbox" id="global-translate-save-key">
+                            <label for="global-translate-save-key">记住当前浏览器</label>
+                        </div>
+                        <p id="global-translate-hint" class="sidebar-translate-hint">留空时可回退后端环境变量；这里的 base URL 与 model 会被翻译、Auto Dubbing、Agent 共用。</p>
+                    </div>
+                </div>
+                <button id="theme-toggle-btn" class="secondary-btn">Light Theme</button>
+                <button id="new-project-btn" class="secondary-btn">New Project</button>
+                <button id="release-models-btn" class="secondary-btn ghost-btn">Release Models</button>
+            </div>
+        </aside>
+
+        <!-- Main Content (Right) -->
+        <main class="main-content">
+            <!-- Fixed Video Section (Top) -->
+            <div class="fixed-video-section">
+                <div class="video-wrapper">
+                    <div id="video-placeholder" class="placeholder">
+                        <div class="placeholder-icon">▶</div>
+                        <span>Select a video to start</span>
+                    </div>
+                    <video id="video-player" controls style="display: none;"></video>
+                    <div id="subtitle-overlay" class="subtitle-overlay bottom-pos" style="display: none;"></div>
+                </div>
+                <!-- Video Controls -->
+                <div class="video-controls-bar">
+                    <!-- Hidden input for player-based subtitle upload -->
+                    <input type="file" id="player-srt-input" accept=".srt"
+                        style="visibility: hidden; position: absolute; width: 0; height: 0;">
+
+                    <label for="display-mode">Overlay:</label>
+                    <select id="display-mode">
+                        <option value="original">Original Only</option>
+                        <option value="translated">Translation Only</option>
+                        <option value="bilingual_orig_trans">Original + Translation</option>
+                        <option value="bilingual_trans_orig">Translation + Original</option>
+                    </select>
+
+                    <label for="sub-position">Pos:</label>
+                    <select id="sub-position" title="Subtitle Position">
+                        <option value="bottom">Bottom</option>
+                        <option value="middle">Middle</option>
+                        <option value="top">Top</option>
+                    </select>
+
+                    <button id="seek-back-btn" class="ghost-btn" style="padding: 6px 12px;" title="Rewind 10 seconds">⟲ 10s</button>
+                    <button id="seek-forward-btn" class="ghost-btn" style="padding: 6px 12px;" title="Forward 10 seconds">10s ⟳</button>
+
+                    <button id="load-srt-btn" class="ghost-btn" type="button"
+                        onclick="if(window.triggerSrtLoad) window.triggerSrtLoad(); else alert('Wait for page load');"
+                        style="padding: 6px 12px;" title="Load Local Subtitles">📂</button>
+                    <div id="audio-track-switcher" style="display:none; align-items:center; gap:6px;">
+                        <label for="audio-track-mode">Track:</label>
+                        <select id="audio-track-mode" title="Audio Track">
+                            <option value="original">Original</option>
+                            <option value="dubbed">Dubbed</option>
+                        </select>
+                    </div>
+                    <button id="fullscreen-btn" class="ghost-btn" style="padding: 6px 12px;"
+                        title="Fullscreen">⛶</button>
+                </div>
+            </div>
+
+            <!-- Scrollable Content Section (Bottom) -->
+            <div class="dynamic-content-section">
+                <!-- Panel 1: Upload Video + Optional SRT -->
+                <div id="panel-upload" class="panel active">
+                    <div class="card">
+                        <h2>📁 Upload Media</h2>
+                        <div style="display: flex; justify-content: center; align-items: center;">
+                            <div class="upload-block" style="max-width: 600px; width: 100%;">
+                                <h3>Video / Audio (Required)</h3>
+                                <div id="upload-area" class="upload-area">
+                                    <input type="file" id="file-input" accept="video/*,audio/*" style="display: none;">
+                                    <div class="upload-icon">📁</div>
+                                    <p class="upload-text">Click or Drag & Drop Video/Audio</p>
+                                    <p class="upload-hint">支持格式: MP4, MOV, MKV, MP3, WAV</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="panel-results" class="panel" style="display: none;">
+                    <div class="card">
+                        <h2>✏️ Subtitle & Translation</h2>
+
+                        <!-- Transcription Controls -->
+                        <div style="margin-bottom: 20px; padding: 15px; border: 1px solid var(--border); border-radius: 8px;">
+                            <h3 style="margin-top: 0;">字幕识别</h3>
+                            <div style="display: flex; gap: 10px; align-items: flex-end;">
+                                <div class="input-group" style="flex: 1;">
+                                    <label>Source Language</label>
+                                    <select id="source-lang">
+                                        <option value="auto">Auto Detect</option>
+                                        <option value="Chinese">Chinese (中文)</option>
+                                        <option value="English">English</option>
+                                        <option value="Cantonese">Cantonese (粤语)</option>
+                                    </select>
+                                </div>
+                                <button id="transcribe-btn" class="primary-btn" style="flex: 1;">Generate Subtitles</button>
+                            </div>
+                            <div id="progress-container" class="progress-container" style="display: none; margin-top: 10px;">
+                                <div class="progress-bar">
+                                    <div id="progress-fill" class="progress-fill"></div>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-top: 5px; font-size: 0.9em;">
+                                    <span id="progress-text">Processing...</span>
+                                    <span id="runtime-timer" style="color: var(--text-secondary); font-family: monospace;">00:00</span>
+                                </div>
+                            </div>
+                            <div id="transcription-timer" style="color: var(--text-muted); font-size: 0.9em; margin-top: 10px;"></div>
+                        </div>
+
+                        <!-- Subtitle Editor -->
+                        <div class="subtitle-editor">
+                            <div class="subtitle-column">
+                                <h3>Original</h3>
+                                <div id="original-subtitles" class="subtitle-display"></div>
+                                <a id="download-original" class="download-link" style="display:none">Download SRT</a>
+                            </div>
+                            <div class="subtitle-column">
+                                <h3>Translation</h3>
+                                <div class="trans-controls-stack">
+                                    <select id="target-lang" style="flex: 1;">
+                                        <option value="Chinese" selected>Chinese</option>
+                                        <option value="English">English</option>
+                                    </select>
+                                </div>
+                                <button id="translate-btn" class="primary-btn" style="margin-top: 10px;">Translate</button>
+                                <div id="translated-subtitles" class="subtitle-display"></div>
+                                <a id="download-translated" class="download-link" style="display:none">Download SRT</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    </main>
+    </div>
+
+    <script src="/static/app.js?v={{ app_js_version }}"></script>
+</body>
+
+</html>

@@ -1,0 +1,13 @@
+mlx>=0.20.0
+mlx-lm>=0.20.0
+huggingface-hub>=0.20
+silero-vad>=5.1
+numpy>=1.26
+soundfile>=0.12
+librosa>=0.10
+tqdm>=4.66
+
+# dev
+pytest>=8.0
+pytest-benchmark>=4.0
+pytest-mock>=3.12

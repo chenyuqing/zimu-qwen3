@@ -1,0 +1,46 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+*.pyc
+
+# Virtual environments
+.venv
+
+# Model files (download separately)
+models/
+
+# macOS
+.DS_Store
+
+# Uploaded media files (user uploads)
+uploads/
+
+# Generated audio samples
+audio/
+
+# Generated outputs
+outputs/
+
+# Debug / temp scripts
+debug_*.py
+fix_*.py
+fix_*.sh
+
+# Server logs
+server.log
+
+# Shell scripts
+start.sh
+stop.sh
+
+# Test subtitle files
+*.srt
+
+# Template backups
+*.bak
+*.bak2
+*.bak3

@@ -1,0 +1,43 @@
+[project]
+name = "zimu-qwen3"
+version = "0.1.0"
+description = "Mac 16GB 语音转字幕系统，基于 Qwen3-ASR MLX"
+requires-python = ">=3.11"
+dependencies = [
+    "mlx>=0.20.0",
+    "mlx-lm>=0.20.0",
+    "huggingface-hub>=0.20",
+    "numpy>=1.26",
+    "soundfile>=0.12",
+    "librosa>=0.10",
+    "tqdm>=4.66",
+    "fastapi>=0.110.0",
+    "uvicorn>=0.27.0",
+    "python-multipart>=0.0.9",
+    "jinja2>=3.1.0",
+    "aiofiles>=23.2.0",
+    "mlx-audio>=0.4.4",
+    "ctc-forced-aligner>=1.0.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-benchmark>=4.0",
+    "pytest-mock>=3.12",
+]
+
+[project.scripts]
+zimu = "zimu_qwen3.cli:main"
+zimu-web = "zimu_qwen3.web:start"
+
+[[tool.uv.index]]
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+default = true
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
